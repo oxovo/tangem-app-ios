@@ -50,13 +50,13 @@ class WalletManagerAssembly {
             
             if !tokenItems.isEmpty {
                 //Load tokens if exists
-                let savedBlockchains = Set(tokenItems.map { $0.blockchain })
+                let savedBlockchains = Set(tokenItems.map { $0.derivedBlockchain })
                 let savedTokens = tokenItems.compactMap { $0.token }
                 let groupedTokens = Dictionary(grouping: savedTokens, by: { $0.blockchain })
                 
                 walletManagers.append(contentsOf: makeWalletManagers(from: cardInfo,
                                                                      blockchains: Array(savedBlockchains)
-                                                                        .sorted{$0.displayName < $1.displayName}))
+                                                                        .sorted{$0.blockchain.displayName < $1.blockchain.displayName}))
                 groupedTokens.forEach { tokenGroup in
                     if let manager = walletManagers.first(where: {$0.wallet.blockchain == tokenGroup.key }) {
                         manager.addTokens(tokenGroup.value)
@@ -95,6 +95,21 @@ class WalletManagerAssembly {
             return nil
         }
     }
+
+    func makeWalletManagers(from cardInfo: CardInfo, blockchains: [DerivedBlockchain]) -> [WalletManager] {
+        return blockchains.compactMap { blockchain in
+            if let wallet = cardInfo.card.wallets.first(where: { $0.curve == blockchain.blockchain.curve }) {
+                return makeWalletManager(cardId: cardInfo.card.cardId,
+                                         walletPublicKey: wallet.publicKey,
+                                         blockchain: blockchain,
+                                         isHDWalletAllowed: cardInfo.card.settings.isHDWalletAllowed,
+                                         derivedKeys: cardInfo.derivedKeys[wallet.publicKey] ?? [:]
+                )
+            }
+            
+            return nil
+        }
+    }
     
     func makeWalletManagers(from cardDto: SavedCard, blockchains: [Blockchain]) -> [WalletManager] {
         return blockchains.compactMap { blockchain in
@@ -125,6 +140,26 @@ class WalletManagerAssembly {
         } else {
             return try? factory.makeWalletManager(cardId: cardId,
                                                   blockchain: blockchain,
+                                                  walletPublicKey: walletPublicKey)
+        }
+    }
+    
+    private func makeWalletManager(cardId: String,
+                                   walletPublicKey: Data,
+                                   blockchain: DerivedBlockchain,
+                                   isHDWalletAllowed: Bool,
+                                   derivedKeys: [DerivationPath: ExtendedPublicKey]) -> WalletManager? {
+        if isHDWalletAllowed, blockchain.blockchain.curve == .secp256k1 || blockchain.blockchain.curve == .ed25519  {
+            guard let derivedKey = derivedKeys[blockchain.derivationPath!] else { return nil }
+
+            return try? factory.makeWalletManager(cardId: cardId,
+                                                  blockchain: blockchain.blockchain,
+                                                  seedKey: walletPublicKey,
+                                                  derivedKey: derivedKey,
+                                                  derivationPath: blockchain.derivationPath)
+        } else {
+            return try? factory.makeWalletManager(cardId: cardId,
+                                                  blockchain: blockchain.blockchain,
                                                   walletPublicKey: walletPublicKey)
         }
     }

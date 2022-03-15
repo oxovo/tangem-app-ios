@@ -12,7 +12,7 @@ import Kingfisher
 import SwiftUI
 
 enum TokenItem: Hashable, Identifiable {
-    case blockchain(Blockchain)
+    case blockchain(DerivedBlockchain)
     case token(Token)
     
     var isBlockchain: Bool { token == nil }
@@ -31,7 +31,16 @@ enum TokenItem: Hashable, Identifiable {
         case .token(let token):
             return token.blockchain
         case .blockchain(let blockchain):
-            return blockchain
+            return blockchain.blockchain
+        }
+    }
+    
+    var derivedBlockchain: DerivedBlockchain {
+        switch self {
+        case .blockchain(let derivedBlockchain):
+            return derivedBlockchain
+        case .token(let token):
+            return .init(blockchain: token.blockchain, derivationPath: token.derivationPath)
         }
     }
     
@@ -46,8 +55,8 @@ enum TokenItem: Hashable, Identifiable {
         switch self {
         case .token(let token):
             return token.name
-        case .blockchain(let blockchain):
-            return blockchain.displayName
+        case .blockchain(let derivedBlockchain):
+            return derivedBlockchain.blockchain.displayName
         }
     }
     
@@ -70,8 +79,8 @@ enum TokenItem: Hashable, Identifiable {
         switch self {
         case .token(let token):
             return token.symbol
-        case .blockchain(let blockchain):
-            return blockchain.currencySymbol
+        case .blockchain(let derivedBlockchain):
+            return derivedBlockchain.blockchain.currencySymbol
         }
     }
     
@@ -109,8 +118,8 @@ enum TokenItem: Hashable, Identifiable {
     
     fileprivate var imageURL: URL? {
         switch self {
-        case .blockchain(let blockchain):
-            return IconsUtils.getBlockchainIconUrl(blockchain).flatMap { URL(string: $0.absoluteString) }
+        case .blockchain(let derivedBlockchain):
+            return IconsUtils.getBlockchainIconUrl(derivedBlockchain.blockchain).flatMap { URL(string: $0.absoluteString) }
         case .token(let token):
             return token.customIconUrl.flatMap{ URL(string: $0) }
         }
@@ -120,10 +129,12 @@ enum TokenItem: Hashable, Identifiable {
 extension TokenItem: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        if let blockchain = try? container.decode(Blockchain.self) {
-            self = .blockchain(blockchain)
-        } else if let token = try? container.decode(Token.self) {
+        
+        // Try to decode Token first, because it contains fields that the other enum option doesn't have
+        if let token = try? container.decode(Token.self) {
             self = .token(token)
+        } else if let blockchain = try? container.decode(DerivedBlockchain.self) {
+            self = .blockchain(.init(blockchain: blockchain.blockchain, derivationPath: blockchain.derivationPath))
         } else if let tokenDto = try? container.decode(TokenDTO.self) {
             self = .token(Token(name: tokenDto.name,
                                 symbol: tokenDto.symbol,

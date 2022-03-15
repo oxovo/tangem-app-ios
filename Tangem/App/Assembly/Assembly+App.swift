@@ -203,7 +203,7 @@ extension Assembly {
         return vm
     }
     
-    func makeTokenDetailsViewModel( blockchain: Blockchain, amountType: Amount.AmountType = .coin) -> TokenDetailsViewModel {
+    func makeTokenDetailsViewModel( blockchain: Blockchain, derivationPath: DerivationPath?, amountType: Amount.AmountType = .coin) -> TokenDetailsViewModel {
         if let restored: TokenDetailsViewModel = get() {
 //            if let cardModel = services.cardsRepository.lastScanResult.cardModel {
 //                   restored.card = cardModel
@@ -211,7 +211,7 @@ extension Assembly {
             return restored
         }
         
-        let vm = TokenDetailsViewModel(blockchain: blockchain, amountType: amountType)
+        let vm = TokenDetailsViewModel(blockchain: blockchain, derivationPath: derivationPath, amountType: amountType)
         initialize(vm)
         if let cardModel = services.cardsRepository.lastScanResult.cardModel {
             vm.card = cardModel
@@ -425,6 +425,14 @@ extension Assembly {
     }
     
     func makeWalletModels(from cardInfo: CardInfo, blockchains: [Blockchain]) -> [WalletModel] {
+        let walletManagerFactory = WalletManagerFactory(config: services.keysManager.blockchainConfig)
+        let assembly = WalletManagerAssembly(factory: walletManagerFactory,
+                                             tokenItemsRepository: services.tokenItemsRepository)
+        let walletManagers = assembly.makeWalletManagers(from: cardInfo, blockchains: blockchains)
+        return makeWalletModels(walletManagers: walletManagers, cardInfo: cardInfo)
+    }
+    
+    func makeWalletModels(from cardInfo: CardInfo, blockchains: [DerivedBlockchain]) -> [WalletModel] {
         let walletManagerFactory = WalletManagerFactory(config: services.keysManager.blockchainConfig)
         let assembly = WalletManagerAssembly(factory: walletManagerFactory,
                                              tokenItemsRepository: services.tokenItemsRepository)

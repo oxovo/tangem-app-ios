@@ -106,9 +106,15 @@ struct MainView: View {
             NavigationLink(destination: DetailsView(viewModel: viewModel.assembly.makeDetailsViewModel()),
                            isActive: $viewModel.navigation.mainToSettings)
             
-            NavigationLink(destination: TokenDetailsView(viewModel: viewModel.assembly.makeTokenDetailsViewModel(blockchain: viewModel.selectedWallet.blockchain,
-                                                                                                                 amountType: viewModel.selectedWallet.amountType)),
-                           isActive: $navigation.mainToTokenDetails)
+            NavigationLink(destination:
+                            TokenDetailsView(
+                                viewModel: viewModel.assembly.makeTokenDetailsViewModel(
+                                    blockchain: viewModel.selectedWallet.blockchain,
+                                    derivationPath:  viewModel.selectedWallet.derivationPath,
+                                    amountType: viewModel.selectedWallet.amountType
+                                )),
+                           isActive: $navigation.mainToTokenDetails
+            )
             
             NavigationLink(destination: WebViewContainer(url: viewModel.buyCryptoURL,
                                                          title: "wallet_button_topup",

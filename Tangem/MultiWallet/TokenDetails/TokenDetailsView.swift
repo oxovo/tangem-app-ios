@@ -222,7 +222,7 @@ struct TokenDetailsView_Previews: PreviewProvider {
     
     static var previews: some View {
         NavigationView {
-            TokenDetailsView(viewModel: assembly.makeTokenDetailsViewModel(blockchain: assembly.previewBlockchain))
+            TokenDetailsView(viewModel: assembly.makeTokenDetailsViewModel(blockchain: assembly.previewBlockchain, derivationPath: assembly.previewBlockchain.derivationPath))
                 .environmentObject(assembly.services.navigationCoordinator)
         }
         .deviceForPreviewZoomed(.iPhone7)

@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import BlockchainSdk
 import TangemSdk
 import SwiftUI
 
@@ -61,8 +60,8 @@ struct TokenItemViewModel: Identifiable, Equatable, Comparable {
 }
 
 extension TokenItemViewModel {
-    init(from balanceViewModel: BalanceViewModel, rate: String, fiatValue: Decimal, blockchain: Blockchain, derivationPath: DerivationPath?, hasTransactionInProgress: Bool) {
-        self.hasTransactionInProgress = hasTransactionInProgress
+    init(from balanceViewModel: BalanceViewModel, rate: String, fiatValue: Decimal, blockchain: Blockchain, derivationPath: DerivationPath?) {
+        self.hasTransactionInProgress = balanceViewModel.hasTransactionInProgress
         state = balanceViewModel.state
         name = balanceViewModel.name
         if name == "" {
@@ -82,9 +81,9 @@ extension TokenItemViewModel {
          rate: String,
          fiatValue: Decimal,
          blockchain: Blockchain,
-         derivationPath: DerivationPath?,
-         hasTransactionInProgress: Bool) {
-        self.hasTransactionInProgress = hasTransactionInProgress
+         derivationPath: DerivationPath?
+    ) {
+        self.hasTransactionInProgress = balanceViewModel.hasTransactionInProgress
         state = balanceViewModel.state
         name = tokenBalanceViewModel.name
         balance = tokenBalanceViewModel.balance

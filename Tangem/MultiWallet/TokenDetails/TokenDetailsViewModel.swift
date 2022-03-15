@@ -7,6 +7,7 @@
 //
 import SwiftUI
 import BlockchainSdk
+import TangemSdk
 import Combine
 
 class TokenDetailsViewModel: ViewModel, ObservableObject {
@@ -28,7 +29,7 @@ class TokenDetailsViewModel: ViewModel, ObservableObject {
     }
     
     var walletModel: WalletModel? {
-        return card.walletModels?.first(where: { $0.wallet.blockchain == blockchain })
+        return card.walletModels?.first(where: { $0.wallet.blockchain == blockchain && $0.wallet.derivationPath == derivationPath })
     }
     
     var incomingTransactions: [PendingTransaction] {
@@ -105,7 +106,7 @@ class TokenDetailsViewModel: ViewModel, ObservableObject {
     }
     
     var canDelete: Bool {
-        return card.canRemove(amountType: amountType, blockchain: blockchain)
+        return card.canRemove(amountType: amountType, blockchain: blockchain, derivationPath: derivationPath)
 //        let canRemoveAmountType = walletModel.canRemove(amountType: amountType)
 //        if case .noAccount = walletModel.state, canRemoveAmountType {
 //            return true
@@ -166,18 +167,20 @@ class TokenDetailsViewModel: ViewModel, ObservableObject {
     
     let amountType: Amount.AmountType
     let blockchain: Blockchain
+    let derivationPath: DerivationPath?
     
     var sellCryptoRequest: SellCryptoRequest? = nil
     
     private var bag = Set<AnyCancellable>()
     
-    init(blockchain: Blockchain, amountType: Amount.AmountType) {
+    init(blockchain: Blockchain, derivationPath: DerivationPath?, amountType: Amount.AmountType) {
         self.blockchain = blockchain
+        self.derivationPath = derivationPath ?? blockchain.derivationPath
         self.amountType = amountType
     }
     
     func onRemove() {
-        card.remove(amountType: amountType, blockchain: blockchain)
+        card.remove(amountType: amountType, blockchain: blockchain, derivationPath: derivationPath)
     }
     
     func tradeCryptoAction() {

@@ -335,7 +335,7 @@ class WalletModel: ObservableObject, Identifiable {
             return .token(token)
         }
         
-        return .blockchain(wallet.blockchain)
+        return .blockchain(.init(wallet.blockchain))
     }
     
     func startUpdatingTimer() {
@@ -431,17 +431,19 @@ class WalletModel: ObservableObject, Identifiable {
         let blockchainItem = TokenItemViewModel(from: balanceViewModel,
                                                 rate: getRateFormatted(for: .coin),
                                                 fiatValue: getFiat(for: wallet.amounts[.coin]) ?? 0,
-                                             blockchain: wallet.blockchain,
-                                             hasTransactionInProgress: wallet.hasPendingTx(for: .coin))
+                                                blockchain: wallet.blockchain,
+                                                derivationPath: wallet.derivationPath,
+                                                hasTransactionInProgress: wallet.hasPendingTx(for: .coin))
         
         let items: [TokenItemViewModel] = tokenViewModels.map {
             let amountType = Amount.AmountType.token(value: $0.token)
             return TokenItemViewModel(from: balanceViewModel,
-                                tokenBalanceViewModel: $0,
-                                rate: getRateFormatted(for: amountType),
-                                fiatValue:  getFiat(for: wallet.amounts[amountType]) ?? 0,
-                                blockchain: wallet.blockchain,
-                                hasTransactionInProgress: wallet.hasPendingTx(for: amountType))
+                                      tokenBalanceViewModel: $0,
+                                      rate: getRateFormatted(for: amountType),
+                                      fiatValue:  getFiat(for: wallet.amounts[amountType]) ?? 0,
+                                      blockchain: wallet.blockchain,
+                                      derivationPath: wallet.derivationPath,
+                                      hasTransactionInProgress: wallet.hasPendingTx(for: amountType))
         }
         
         tokenItemViewModels = [blockchainItem] + items

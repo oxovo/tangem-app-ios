@@ -261,16 +261,18 @@ final class AppScanTask: CardSessionRunnable {
         
         if let card = session.environment.card, card.isDemoCard { //Force add blockchains for demo cards
             let demoBlockchains = SupportedTokenItems().predefinedBlockchains(isDemo: true)
-            let tokenItems = demoBlockchains.map { TokenItem.blockchain($0) }
+            let tokenItems = demoBlockchains.map { TokenItem.blockchain(.init(blockchain: $0, derivationPath: $0.derivationPath)) }
             tokenItemsRepository.append(tokenItems, for: card.cardId)
         }
         
-        var savedBlockchains = tokenItemsRepository.getItems(for: session.environment.card!.cardId).map { $0.blockchain }
-        mandatoryBlockchain.map { savedBlockchains.append($0) }
+        var savedBlockchains = tokenItemsRepository.getItems(for: session.environment.card!.cardId).map { $0.derivedBlockchain }
+        if let mandatoryBlockchain = mandatoryBlockchain {
+            savedBlockchains.append(.init(mandatoryBlockchain))
+        }
         
         let uniqueBlockchains = Set(savedBlockchains)
         let derivations: [Data: [DerivationPath]] = uniqueBlockchains.reduce(into: [:]) { partialResult, blockchain in
-            if let wallet = session.environment.card?.wallets.first(where: { $0.curve == blockchain.curve }),
+            if let wallet = session.environment.card?.wallets.first(where: { $0.curve == blockchain.blockchain.curve }),
                let path = blockchain.derivationPath {
                 partialResult[wallet.publicKey, default: []].append(path)
             }

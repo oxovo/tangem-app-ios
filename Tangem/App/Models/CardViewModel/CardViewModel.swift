@@ -523,7 +523,7 @@ class CardViewModel: Identifiable, ObservableObject {
             if let existingWalletModels = self.walletModels {
                 var itemsToAdd: [WalletModel] = []
                 for model in newWalletModels {
-                    if !existingWalletModels.contains(where: { $0.wallet.blockchain == model.wallet.blockchain }) {
+                    if !existingWalletModels.contains(where: { $0.wallet.blockchain == model.wallet.blockchain && $0.wallet.derivationPath == model.wallet.derivationPath }) {
                         itemsToAdd.append(model)
                     }
                 }
@@ -559,7 +559,7 @@ class CardViewModel: Identifiable, ObservableObject {
             .sink(receiveValue: { [unowned self] _ in
                 let notEmptyWallets = models.filter { !$0.wallet.isEmpty }
                 if !notEmptyWallets.isEmpty {
-                    tokenItemsRepository.append(notEmptyWallets.map({TokenItem.blockchain($0.wallet.blockchain)}), for: cardInfo.card.cardId)
+                    tokenItemsRepository.append(notEmptyWallets.map({TokenItem.blockchain(.init($0.wallet.blockchain))}), for: cardInfo.card.cardId)
                     updateLoadedState(with: notEmptyWallets)
                 }
             })
@@ -605,7 +605,7 @@ class CardViewModel: Identifiable, ObservableObject {
                     self.tokenItemsRepository.append(tokenItems, for: self.cardInfo.card.cardId)
                     
                     if sholdAddWalletManager {
-                        self.tokenItemsRepository.append(.blockchain(ethWalletModel!.wallet.blockchain), for: self.cardInfo.card.cardId)
+                        self.tokenItemsRepository.append(.blockchain(.init(ethWalletModel!.wallet.blockchain)), for: self.cardInfo.card.cardId)
                         self.stateUpdateQueue.sync {
                             self.state = .loaded(walletModel: self.walletModels! + [ethWalletModel!])
                         }
@@ -623,7 +623,7 @@ class CardViewModel: Identifiable, ObservableObject {
   
     @discardableResult
     func addBlockchain(_ blockchain: Blockchain) -> WalletModel? {
-        tokenItemsRepository.append(.blockchain(blockchain), for: cardInfo.card.cardId)
+        tokenItemsRepository.append(.blockchain(.init(blockchain)), for: cardInfo.card.cardId)
         let newWalletModels = assembly.makeWalletModels(from: cardInfo, blockchains: [blockchain])
         newWalletModels.forEach {$0.update()}
         updateLoadedState(with: newWalletModels)
@@ -647,7 +647,7 @@ class CardViewModel: Identifiable, ObservableObject {
         
         tokenItemsRepository.append(addItems, for: cardInfo.card.cardId)
         
-        let existingBlockchains = Set(walletModels.map { $0.wallet.blockchain })
+         let existingBlockchains = Set(walletModels.map { $0.wallet.blockchain })
         let newBlockchains = Set(addItems.map { $0.blockchain })
         let tokens = addItems.compactMap { $0.token }
         let groupedTokens = Dictionary(grouping: tokens, by: { $0.blockchain })
@@ -658,7 +658,7 @@ class CardViewModel: Identifiable, ObservableObject {
 
             for blockchain in blockchainsToAdd {
                 if let path = blockchain.derivationPath,
-                   let publicKey = cardInfo.card.wallets.first(where: { $0.curve == blockchain.curve })?.publicKey {
+                   let publicKey = cardInfo.card.wallets.first(where: { $0.curve == blockchain.blockchain.curve })?.publicKey {
                     if cardInfo.derivedKeys[publicKey]?[path] == nil {
                         newDerivationPaths[publicKey, default: []].append(path)
                     }
@@ -683,7 +683,7 @@ class CardViewModel: Identifiable, ObservableObject {
         }
     }
     
-    private func finishAddingTokens(_ newBlockchains: [Blockchain], _ groupedTokens: [Blockchain : [BlockchainSdk.Token]],
+    private func finishAddingTokens(_ newBlockchains: [DerivedBlockchain], _ groupedTokens: [DerivedBlockchain : [BlockchainSdk.Token]],
                                     completion: @escaping (Result<Void, Error>) -> Void) {
         guard let walletModels = self.walletModels else {
             completion(.success(()))
@@ -693,12 +693,12 @@ class CardViewModel: Identifiable, ObservableObject {
         let newWalletModels = assembly.makeWalletModels(from: cardInfo, blockchains: newBlockchains)
         
         for item in groupedTokens {
-            if let existingWalletModel = walletModels.first(where: { $0.wallet.blockchain == item.key }) {
+            if let existingWalletModel = walletModels.first(where: { $0.wallet.blockchain == item.key.blockchain && $0.wallet.derivationPath == item.key.derivationPath }) {
                 existingWalletModel.addTokens(item.value)
                 existingWalletModel.update()
             }
             
-            if let newWalletModel = newWalletModels.first(where: { $0.wallet.blockchain == item.key }) {
+            if let newWalletModel = newWalletModels.first(where: { $0.wallet.blockchain == item.key.blockchain && $0.wallet.derivationPath == item.key.derivationPath }) {
                 newWalletModel.addTokens(item.value)
             }
         }
@@ -708,8 +708,8 @@ class CardViewModel: Identifiable, ObservableObject {
         completion(.success(()))
     }
     
-    func canRemove(amountType: Amount.AmountType, blockchain: Blockchain) -> Bool {
-        if let walletModel = walletModels?.first(where: { $0.wallet.blockchain == blockchain }) {
+    func canRemove(amountType: Amount.AmountType, blockchain: Blockchain, derivationPath: DerivationPath?) -> Bool {
+        if let walletModel = walletModels?.first(where: { $0.wallet.blockchain == blockchain && $0.wallet.derivationPath == derivationPath }) {
             return walletModel.canRemove(amountType: amountType)
         }
         
@@ -730,24 +730,27 @@ class CardViewModel: Identifiable, ObservableObject {
         }
         
         if amountType == .coin {
-            removeBlockchain(blockchain)
+            removeBlockchain(blockchain, derivationPath: derivationPath)
         } else if case let .token(token) = amountType {
-            removeToken(token, blockchain: blockchain)
+            removeToken(token, blockchain: blockchain, derivationPath: derivationPath)
         }
     }
     
-    private func removeBlockchain(_ blockchain: Blockchain) {
-        tokenItemsRepository.remove(.blockchain(blockchain), for: cardInfo.card.cardId)
+    private func removeBlockchain(_ blockchain: Blockchain, derivationPath: DerivationPath?) {
+        tokenItemsRepository.remove(.blockchain(.init(blockchain: blockchain, derivationPath: derivationPath)), for: cardInfo.card.cardId)
         
         stateUpdateQueue.sync {
             if let walletModels = self.walletModels {
-                state = .loaded(walletModel: walletModels.filter { $0.wallet.blockchain != blockchain })
+                let newModels = walletModels.filter {
+                    !($0.wallet.blockchain == blockchain && $0.wallet.derivationPath == derivationPath)
+                }
+                state = .loaded(walletModel: newModels)
             }
         }
     }
     
-    private func removeToken(_ token: BlockchainSdk.Token, blockchain: Blockchain) {
-        if let walletModel = walletModels?.first(where: { $0.wallet.blockchain == blockchain}) {
+    private func removeToken(_ token: BlockchainSdk.Token, blockchain: Blockchain, derivationPath: DerivationPath?) {
+        if let walletModel = walletModels?.first(where: { $0.wallet.blockchain == blockchain && $0.wallet.derivationPath == derivationPath }) {
             let isRemoved = walletModel.removeToken(token, for: cardInfo.card.cardId)
             
             if isRemoved {

@@ -9,6 +9,11 @@
 import Foundation
 import SwiftUI
 
+#if !CLIP
+import BlockchainSdk
+#endif
+
+
 struct TokensListItemView: View {
     var item: TokenItemViewModel
     
@@ -105,6 +110,7 @@ struct WalletsViewItem_Previews: PreviewProvider {
                                                             rate: "1.5 USD",
                                                             amountType: .coin,
                                                             blockchain: .ethereum(testnet: false),
+                                                            derivationPath: Blockchain.ethereum(testnet: false).derivationPath,
                                                             fiatValue: 0))
                     .padding(.horizontal, 16)
                 
@@ -115,6 +121,7 @@ struct WalletsViewItem_Previews: PreviewProvider {
                                                             rate: "",
                                                             amountType: .coin,
                                                             blockchain: .ethereum(testnet: false),
+                                                            derivationPath: Blockchain.ethereum(testnet: false).derivationPath,
                                                             fiatValue: 0))
                     .padding(.horizontal, 16)
                 
@@ -126,6 +133,7 @@ struct WalletsViewItem_Previews: PreviewProvider {
                                     rate: "1.5 USD",
                                     amountType: .coin,
                                     blockchain: .ethereum(testnet: false),
+                                    derivationPath: Blockchain.ethereum(testnet: false).derivationPath,
                                     fiatValue: 0))
                     .padding(.horizontal, 16)
                 
@@ -137,6 +145,7 @@ struct WalletsViewItem_Previews: PreviewProvider {
                                     rate: "1.5 USD",
                                     amountType: .coin,
                                     blockchain: .ethereum(testnet: false),
+                                    derivationPath: Blockchain.ethereum(testnet: false).derivationPath,
                                     fiatValue: 0))
                     .padding(.horizontal, 16)
                 
@@ -148,6 +157,7 @@ struct WalletsViewItem_Previews: PreviewProvider {
                                     rate: "1.5 USD",
                                     amountType: .coin,
                                     blockchain: .ethereum(testnet: false),
+                                    derivationPath: Blockchain.ethereum(testnet: false).derivationPath,
                                     fiatValue: 0))
                     .padding(.horizontal, 16)
             }
