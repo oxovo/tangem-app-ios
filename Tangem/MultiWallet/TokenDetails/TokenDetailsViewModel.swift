@@ -13,6 +13,7 @@ class TokenDetailsViewModel: ViewModel, ObservableObject {
     weak var assembly: Assembly!
     weak var navigation: NavigationCoordinator!
     weak var exchangeService: ExchangeService!
+    var moneyRecoveryService: MoneyRecoveryService?
     
     @Published var alert: AlertBinder? = nil
     
@@ -97,6 +98,10 @@ class TokenDetailsViewModel: ViewModel, ObservableObject {
         }
         
         return wallet?.canSend(amountType: self.amountType) ?? false
+    }
+    
+    var canRecoverFunds: Bool {
+        moneyRecoveryService != nil
     }
     
     var canDelete: Bool {
@@ -208,6 +213,19 @@ class TokenDetailsViewModel: ViewModel, ObservableObject {
         }
         
         navigation.detailsToSellCrypto = true
+    }
+    
+    func recoverFundsAction() {
+//        moneyRecoveryService?.recover()
+        
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+        let token = Token(name: "A", symbol: "ASDASD", contractAddress: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f", decimalCount: 6, customIconUrl: nil, blockchain: .polygon(testnet: false), derivationPath: Blockchain.bsc(testnet: false).derivationPath)
+            let tokenItem = TokenItem.token(token)
+            let card = self.card!
+            card.addTokenItems([tokenItem]) { r in
+                    print(r)
+                }
+//        }
     }
     
     func pushOutgoingTx(at index: Int) {

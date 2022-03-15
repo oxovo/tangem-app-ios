@@ -133,6 +133,13 @@ struct TokenDetailsView: View {
                             bottomButtons
                                 .padding(.top, 16)
                             
+                            if viewModel.canRecoverFunds {
+                                Button(action: viewModel.recoverFundsAction) {
+                                    Text("Recover funds")
+                                }
+                                .padding(.top, 16)
+                            }
+                            
                             
                             if let sendBlockedReason = viewModel.sendBlockedReason {
                                 AlertCardView(title: "", message: sendBlockedReason)
