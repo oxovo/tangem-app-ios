@@ -244,6 +244,43 @@ extension Assembly {
         return vm
     }
     
+    func makeMoneyRecoveryViewModel(blockchain: Blockchain, derivationPath: DerivationPath?, amountType: Amount.AmountType) -> MoneyRecoveryViewModel {
+        if let restored: MoneyRecoveryViewModel = get() {
+            return restored
+        }
+        
+        let vm = MoneyRecoveryViewModel()
+        initialize(vm)
+        
+        if let cardModel = services.cardsRepository.lastScanResult.cardModel {
+            vm.card = cardModel
+        }
+        
+        let ethereumBlockchains: [Blockchain] = [
+            .rsk,
+            .bsc(testnet: false),
+            .polygon(testnet: false),
+            .avalanche(testnet: false),
+            .fantom(testnet: false)
+        ]
+        
+        if let cardInfo = services.cardsRepository.lastScanResult.cardModel?.cardInfo,
+           ethereumBlockchains.contains(blockchain)
+        {
+            let walletManagerFactory = WalletManagerFactory(config: services.keysManager.blockchainConfig)
+            let otherBlockchains = ethereumBlockchains.filter { $0 != blockchain }
+            vm.moneyRecoveryService = MoneyRecoveryService(
+                cardInfo: cardInfo,
+                walletManagerFactory: walletManagerFactory,
+                amountType: amountType,
+                blockchain: blockchain,
+                otherBlockchains: otherBlockchains
+            )
+        }
+        
+        return vm
+    }
+
     // MARK: Card model
     func makeCardModel(from info: CardInfo) -> CardViewModel {
         let vm = CardViewModel(cardInfo: info)

@@ -164,6 +164,7 @@ class TokenDetailsViewModel: ViewModel, ObservableObject {
     @Published var txIndexToPush: Int? = nil
     @Published var solanaRentWarning: String? = nil
     @Published var showExplorerURL: URL? = nil
+    @Published var showMoneyRecoveryView = false
     
     let amountType: Amount.AmountType
     let blockchain: Blockchain
@@ -219,16 +220,7 @@ class TokenDetailsViewModel: ViewModel, ObservableObject {
     }
     
     func recoverFundsAction() {
-//        moneyRecoveryService?.recover()
-        
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-        let token = Token(name: "A", symbol: "ASDASD", contractAddress: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f", decimalCount: 6, customIconUrl: nil, blockchain: .polygon(testnet: false), derivationPath: Blockchain.bsc(testnet: false).derivationPath)
-            let tokenItem = TokenItem.token(token)
-            let card = self.card!
-            card.addTokenItems([tokenItem]) { r in
-                    print(r)
-                }
-//        }
+        showMoneyRecoveryView = true
     }
     
     func pushOutgoingTx(at index: Int) {

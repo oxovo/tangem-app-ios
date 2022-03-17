@@ -188,6 +188,11 @@ struct TokenDetailsView: View {
                             .environmentObject(navigation)
                     }
                 }
+            
+            Color.clear.frame(width: 0.5, height: 0.5)
+                .sheet(isPresented: $viewModel.showMoneyRecoveryView) {
+                    MoneyRecoveryView(viewModel: viewModel.assembly.makeMoneyRecoveryViewModel(blockchain: viewModel.blockchain, derivationPath: viewModel.derivationPath, amountType: viewModel.amountType))
+                }
         }
         .edgesIgnoringSafeArea(.bottom)
         .navigationBarHidden(false)
