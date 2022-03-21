@@ -220,11 +220,11 @@ extension Assembly {
 
         
         let ethereumBlockchains: [Blockchain] = [
-            .rsk,
+//            .rsk,
             .bsc(testnet: false),
             .polygon(testnet: false),
-            .avalanche(testnet: false),
-            .fantom(testnet: false)
+//            .avalanche(testnet: false),
+//            .fantom(testnet: false)
         ]
         
         if let cardInfo = services.cardsRepository.lastScanResult.cardModel?.cardInfo,
@@ -390,7 +390,7 @@ extension Assembly {
         return vm
     }
     
-    func makeSendViewModel(with amount: Amount, blockchain: Blockchain, card: CardViewModel) -> SendViewModel {
+    func makeSendViewModel(with amount: Amount, blockchain: Blockchain, card: CardViewModel, walletModel: WalletModel? = nil) -> SendViewModel {
         if let restored: SendViewModel = get() {
             return restored
         }
@@ -398,6 +398,7 @@ extension Assembly {
         let vm: SendViewModel = SendViewModel(amountToSend: amount,
                                               blockchain: blockchain,
                                               cardViewModel: card,
+                                              walletModel: walletModel,
                                               warningsManager: services.warningsService)
         
         if services.featuresService.isPayIdEnabled, let payIdService = PayIDService.make(from: blockchain) {
@@ -486,7 +487,7 @@ extension Assembly {
     }
     
     //Make walletModel from walletManager
-    private func makeWalletModels(walletManagers: [WalletManager], cardInfo: CardInfo?) -> [WalletModel] {
+    func makeWalletModels(walletManagers: [WalletManager], cardInfo: CardInfo?) -> [WalletModel] {
         let items = SupportedTokenItems()
         return walletManagers.map { manager -> WalletModel in
             var demoBalance: Decimal? = nil

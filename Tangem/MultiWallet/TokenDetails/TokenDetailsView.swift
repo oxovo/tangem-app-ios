@@ -124,6 +124,10 @@ struct TokenDetailsView: View {
                         VStack(spacing: 8.0) {
                             ForEach(self.pendingTransactionViews) { $0 }
                             
+                            Text(viewModel.walletModel?.wallet.blockchain.codingKey ?? "?")
+                            
+                            Text(viewModel.walletModel?.wallet.derivationPath?.rawPath ?? "?")
+                            
                             if let walletModel = viewModel.walletModel {
                                 BalanceAddressView(walletModel: walletModel,
                                                    amountType: viewModel.amountType,

@@ -141,11 +141,12 @@ class SendViewModel: ViewModel, ObservableObject {
                 .store(in: &bag)
         }
     }
-    
-    var walletModel: WalletModel {
-        return cardViewModel.walletModels!.first(where: { $0.wallet.blockchain == blockchain })!
-    }
-    
+   
+    let walletModel: WalletModel
+//    var walletModel: WalletModel {
+//        return cardViewModel.walletModels!.first(where: { $0.wallet.blockchain == blockchain })!
+//    }
+//
     var bag = Set<AnyCancellable>()
     
     var currencyUnit: String {
@@ -176,11 +177,17 @@ class SendViewModel: ViewModel, ObservableObject {
     
     private var blockchain: Blockchain
     
-    init(amountToSend: Amount, blockchain: Blockchain, cardViewModel: CardViewModel, warningsManager: WarningsManager) {
+    init(amountToSend: Amount, blockchain: Blockchain, cardViewModel: CardViewModel, walletModel: WalletModel? = nil, warningsManager: WarningsManager) {
         self.blockchain = blockchain
         self.cardViewModel = cardViewModel
         self.amountToSend = amountToSend
         self.warningsManager = warningsManager
+        if let walletModel = walletModel {
+            self.walletModel = walletModel
+        } else {
+            self.walletModel =  cardViewModel.walletModels!.first(where: { $0.wallet.blockchain == blockchain })!
+        }
+        
         isSellingCrypto = false
         fillTotalBlockWithDefaults()
         bind()

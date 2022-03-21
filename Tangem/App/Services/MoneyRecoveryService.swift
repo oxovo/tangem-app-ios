@@ -106,19 +106,34 @@ class MoneyRecoveryService {
         
         numberOfAmountsChecked = 0
         
+//        let otherTokens = self.otherTokens
+        
         walletManagers.forEach { walletManager in
             walletManager.update { [weak self] result in
                 guard let self = self else { return }
                 
+                self.numberOfAmountsChecked += 1
+
+                
                 let wallet = walletManager.wallet
                 let blockchain = wallet.blockchain
-                let amount = wallet.amounts[self.amountType] ?? .zeroCoin(for: blockchain)
-
-                self.subject.send(BlockchainAmount(blockchain: blockchain, amount: amount))
-            
-                self.numberOfAmountsChecked += 1
                 
-                if !amount.isZero || self.numberOfAmountsChecked == self.walletManagers.count {
+                let amount: Amount?
+                switch self.amountType {
+                case .coin:
+                    amount = wallet.amounts[self.amountType]
+                case .token:
+                    let otherToken = self.otherTokens[blockchain]!
+                    amount = wallet.amounts[.token(value: otherToken)]
+                case .reserve:
+                    return
+                }
+                
+                if let amount = amount, !amount.isZero {
+                    self.subject.send(BlockchainAmount(blockchain: blockchain, amount: amount))
+                }
+                
+                if self.numberOfAmountsChecked == self.walletManagers.count {
                     self.subject.send(completion: .finished)
                 }
             }

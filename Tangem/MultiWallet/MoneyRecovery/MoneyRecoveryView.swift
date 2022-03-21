@@ -17,7 +17,7 @@ struct MoneyRecoveryView: View {
             switch viewModel.state {
             case .checking:
                 Text("Checking")
-            case .found(let amount):
+            case .found(let amount, _):
                 Text("Found \(amount.description)")
                 
                 Button {
@@ -31,7 +31,18 @@ struct MoneyRecoveryView: View {
             
             Color.clear.frame(width: 0.5, height: 0.5)
                 .sheet(isPresented: $viewModel.showSendView) {
-                    SendView(viewModel: viewModel.assembly.makeSendViewModel(with: Amount(with: .rsk, value: 1), blockchain: .rsk, card: viewModel.card))
+                    if let foundBlockchain = viewModel.foundBlockchain {
+                        SendView(viewModel:
+                                    viewModel.assembly.makeSendViewModel(
+                                        with: Amount(with: foundBlockchain, value: 1),
+                                        blockchain: foundBlockchain,
+                                        card: viewModel.card,
+                                        walletModel: viewModel.walletModel
+                                    )
+                        )
+                    } else {
+                        EmptyView()
+                    }
                 }
         }
         .onAppear(perform: viewModel.didAppear)
