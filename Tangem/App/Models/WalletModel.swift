@@ -102,6 +102,8 @@ class WalletModel: ObservableObject, Identifiable {
     
     let walletManager: WalletManager
     let signer: TransactionSigner
+    var isHidden: Bool = false
+    
     private let defaultToken: Token?
     private let defaultBlockchain: Blockchain?
     private var bag = Set<AnyCancellable>()
@@ -127,6 +129,15 @@ class WalletModel: ObservableObject, Identifiable {
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: {[unowned self] wallet in
                 print("💳 Wallet model received update")
+                
+                let hasNonZeroAmounts = !wallet.amounts.values.filter ({ $0.isZero }).isEmpty
+                if self.isHidden, hasNonZeroAmounts { //save and show this wallet
+                    self.tokenItemsRepository.append(.blockchain(BlockchainInfo(wallet.blockchain,
+                                                                                derivationPath: wallet.publicKey.derivationPath)),
+                                                     for: wallet.cardId)
+                    self.isHidden = false
+                }
+                
                 self.updateBalanceViewModel(with: wallet, state: self.state)
                 //                if wallet.hasPendingTx {
                 //                    if self.updateTimer == nil {
@@ -381,8 +392,11 @@ class WalletModel: ObservableObject, Identifiable {
                                             secondaryBalance: "",
                                             secondaryFiatBalance: "",
                                             secondaryName: "")
-        updateTokensViewModels()
-        updateTokenItemViewModels()
+        
+        if !isHidden {
+            updateTokensViewModels()
+            updateTokenItemViewModels()
+        }
     }
     
     private func loadRates() {

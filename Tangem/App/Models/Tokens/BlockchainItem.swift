@@ -9,14 +9,28 @@
 import BlockchainSdk
 import TangemSdk
 
-struct BlockchainInfo: Codable, Hashable {
+struct BlockchainInfo: Hashable {
     let blockchain: Blockchain
-    let derivationPath: DerivationPath?
+ 
+    var derivationPath: DerivationPath? {
+        _derivationPath ?? blockchain.derivationPath
+    }
+    
+    var hasExplicitDerivation: Bool {
+        _derivationPath != nil
+    }
+    
+    private let _derivationPath: DerivationPath?
+
+    init(_ blockchain: Blockchain, derivationPath: DerivationPath? = nil ) {
+        self.blockchain = blockchain
+        self._derivationPath = derivationPath
+    }
 }
 
-extension BlockchainInfo {
-    init(blockchain: Blockchain) {
-        self.blockchain = blockchain
-        self.derivationPath = nil
+extension BlockchainInfo: Codable {
+    enum CodingKeys: String, CodingKey {
+        case blockchain = "blockchain"
+        case _derivationPath = "derivationPath"
     }
 }

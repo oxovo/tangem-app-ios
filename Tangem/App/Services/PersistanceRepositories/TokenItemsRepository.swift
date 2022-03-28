@@ -68,7 +68,19 @@ class TokenItemsRepository {
     }
     
     private func fetch(for cardId: String) -> [TokenItem] {
-        return (try? persistanceStorage.value(for: .wallets(cid: cardId))) ?? []
+        let fetched: [TokenItem] = (try? persistanceStorage.value(for: .wallets(cid: cardId))) ?? []
+        //Migration to separate networks/tokens storage
+        let tokenBlokchains = fetched.compactMap { $0.token?.blockchain }
+        let blockchains = fetched.filter { $0.isBlockchain }.map { $0.blockchain }
+        let missingTokenBlokchains = Set(tokenBlokchains).subtracting(blockchains)
+        if !missingTokenBlokchains.isEmpty {
+            let blockchainItems: [TokenItem] = missingTokenBlokchains.map { .blockchain(.init(blockchain: $0)) }
+            let combinedItems = fetched + blockchainItems
+            save(combinedItems, for: cardId)
+            return combinedItems
+        }
+        
+        return fetched
     }
     
     private func save(_ items: [TokenItem], for cardId: String) {

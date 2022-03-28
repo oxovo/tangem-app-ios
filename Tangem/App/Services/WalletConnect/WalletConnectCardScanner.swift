@@ -38,7 +38,7 @@ class WalletConnectCardScanner {
                     
                     self.tangemSdk.startSession(with: AppScanTask(tokenItemsRepository: self.tokenItemsRepository,
                                                                   userPrefsService: nil,
-                                                                  mandatoryBlockchain: network.blockchain),
+                                                                  mandatoryBlockchain: .init(network.blockchain)),
                                                 initialMessage: Message(header: "wallet_connect_scan_card_message".localized)) {[weak self] result in
                         guard let self = self else { return }
                         

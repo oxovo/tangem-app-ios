@@ -29,6 +29,14 @@ extension Card {
         return true
     }
     
+    var isTestnetBatch: Bool {
+        if batchId == "99FF" {
+            return cardId.starts(with: batchId.reversed())
+        }
+        
+        return false
+    }
+    
     var isTwinCard: Bool {
         TwinCardSeries.series(for: cardId) != nil
     }

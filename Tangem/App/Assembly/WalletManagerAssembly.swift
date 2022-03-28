@@ -18,8 +18,8 @@ class WalletManagerAssembly {
         self.factory = factory
         self.tokenItemsRepository = tokenItemsRepository
     }
-    
-    func makeAllWalletManagers(for cardInfo: CardInfo) -> [WalletManager] {
+
+    func makeAllWalletManagers(for cardInfo: CardInfo) -> [WalletManagerInfo] {
         //If this card is Twin, return twinWallet
         if cardInfo.card.isTwinCard {
             if let savedPairKey = cardInfo.twinCardInfo?.pairPublicKey,
@@ -28,7 +28,9 @@ class WalletManagerAssembly {
                                                                     walletPublicKey: publicKey,
                                                                     pairKey: savedPairKey,
                                                                     isTestnet: false) {
-                return [twinManager]
+                
+                let info = WalletManagerInfo(manager: twinManager, isHidden: false)
+                return [info]
             }
             
             //temp for bugged case
@@ -37,7 +39,8 @@ class WalletManagerAssembly {
                let bitcoinManager = try? factory.makeWalletManager(cardId: cardInfo.card.cardId,
                                                                    blockchain: .bitcoin(testnet: false),
                                                                    walletPublicKey: wallet.publicKey ) {
-                return [bitcoinManager]
+                let info = WalletManagerInfo(manager: bitcoinManager, isHidden: false)
+                return [info]
             }
             
             return []
@@ -45,65 +48,83 @@ class WalletManagerAssembly {
         
         //If this card supports multiwallet feature, load all saved tokens from persistent storage
         if cardInfo.isMultiWallet {
-            var walletManagers: [WalletManager] = []
+            var infos: [WalletManagerInfo] = []
             let tokenItems = tokenItemsRepository.getItems(for: cardInfo.card.cardId)
             
             if !tokenItems.isEmpty {
                 //Load tokens if exists
-                let savedBlockchains = Set(tokenItems.map { $0.blockchain })
+                let savedBlockchainInfos = tokenItems.compactMap { $0.blockchainInfo }
                 let savedTokens = tokenItems.compactMap { $0.token }
                 let groupedTokens = Dictionary(grouping: savedTokens, by: { $0.blockchain })
                 
-                walletManagers.append(contentsOf: makeWalletManagers(from: cardInfo,
-                                                                     blockchains: Array(savedBlockchains)
-                                                                        .sorted{$0.displayName < $1.displayName}))
+                infos.append(contentsOf: makeWalletManagers(from: cardInfo, blockchainInfos: savedBlockchainInfos
+                    .sorted{$0.blockchain.displayName < $1.blockchain.displayName}))
+                
                 groupedTokens.forEach { tokenGroup in
-                    if let manager = walletManagers.first(where: {$0.wallet.blockchain == tokenGroup.key }) {
-                        manager.addTokens(tokenGroup.value)
+                    infos.forEach { info in
+                        if info.manager.wallet.blockchain == tokenGroup.key {
+                            info.manager.addTokens(tokenGroup.value)
+                        }
                     }
                 }
             }
             
             //Try found default card wallet
-            if let nativeWalletManager = makeNativeWalletManager(from: cardInfo),
-               !walletManagers.contains(where: { $0.wallet.blockchain == nativeWalletManager.wallet.blockchain }) {
-                walletManagers.append(nativeWalletManager)
+            if let nativeWalletManagerInfo = makeNativeWalletManager(from: cardInfo),
+               !infos.contains(where: { $0.manager.wallet.blockchain == nativeWalletManagerInfo.manager.wallet.blockchain }) {
+                infos.append(nativeWalletManagerInfo)
             }
             
-            return walletManagers
+            return infos
         }
         
         //Old single walled ada cards or Tangem Notes
-        if let nativeWalletManager = makeNativeWalletManager(from: cardInfo) {
-            return [nativeWalletManager]
+        if let nativeWalletManagerInfo = makeNativeWalletManager(from: cardInfo) {
+            return [nativeWalletManagerInfo]
         }
         
         return []
     }
     
     ///Try to make WalletManagers for blockchains with suitable wallet
-    func makeWalletManagers(from cardInfo: CardInfo, blockchains: [Blockchain]) -> [WalletManager] {
-        return blockchains.compactMap { blockchain in
-            if let wallet = cardInfo.card.wallets.first(where: { $0.curve == blockchain.curve }) {
-                return makeWalletManager(cardId: cardInfo.card.cardId,
-                                         walletPublicKey: wallet.publicKey,
-                                         blockchain: blockchain,
-                                         isHDWalletAllowed: cardInfo.card.settings.isHDWalletAllowed,
-                                         derivedKeys: cardInfo.derivedKeys[wallet.publicKey] ?? [:])
+    func makeWalletManagers(from cardInfo: CardInfo, blockchainInfos: [BlockchainInfo]) -> [WalletManagerInfo] {
+        // Additional blockchainInfos for non-validated evm blockchains
+        let additionalInfos = blockchainInfos.compactMap { info -> BlockchainInfo? in
+            if cardInfo.card.settings.isHDWalletAllowed, info.blockchain.isEvmBlockchain,
+               !info.hasExplicitDerivation {
+                let unifiedPath = Blockchain.getDefaultEvmDerivation(isTestnet: cardInfo.isTestnet)
+                return BlockchainInfo(info.blockchain, derivationPath: unifiedPath)
             }
             
             return nil
         }
+        
+        let fullInfos = blockchainInfos + additionalInfos
+        
+        return fullInfos.compactMap { info -> WalletManagerInfo? in
+            if let wallet = cardInfo.card.wallets.first(where: { $0.curve == info.blockchain.curve }),
+               let manager = makeWalletManager(cardId: cardInfo.card.cardId,
+                                               walletPublicKey: wallet.publicKey,
+                                               blockchainInfo: info,
+                                               isHDWalletAllowed: cardInfo.card.settings.isHDWalletAllowed,
+                                               derivedKeys: cardInfo.derivedKeys[wallet.publicKey] ?? [:]) {
+                
+                let hasCopy = additionalInfos.contains(where: { $0.blockchain == info.blockchain })
+                return WalletManagerInfo(manager: manager, isHidden: hasCopy)
+            }
+            return nil
+        }
     }
     
-    func makeWalletManagers(from cardDto: SavedCard, blockchains: [Blockchain]) -> [WalletManager] {
-        return blockchains.compactMap { blockchain in
-            if let wallet = cardDto.wallets.first(where: { $0.curve == blockchain.curve }) {
-                return makeWalletManager(cardId: cardDto.cardId,
-                                         walletPublicKey: wallet.publicKey,
-                                         blockchain: blockchain,
-                                         isHDWalletAllowed: wallet.isHdWalletAllowed,
-                                         derivedKeys: cardDto.getDerivedKeys(for: wallet.publicKey))
+    func makeWalletManagers(from cardDto: SavedCard, blockchainInfos: [BlockchainInfo]) -> [WalletManagerInfo] {
+        return blockchainInfos.compactMap { info in
+            if let wallet = cardDto.wallets.first(where: { $0.curve == info.blockchain.curve }),
+               let manager = makeWalletManager(cardId: cardDto.cardId,
+                                               walletPublicKey: wallet.publicKey,
+                                               blockchainInfo: info,
+                                               isHDWalletAllowed: wallet.isHdWalletAllowed,
+                                               derivedKeys: cardDto.getDerivedKeys(for: wallet.publicKey)) {
+                return WalletManagerInfo(manager: manager, isHidden: false)
             }
             
             return nil
@@ -112,16 +133,19 @@ class WalletManagerAssembly {
     
     private func makeWalletManager(cardId: String,
                                    walletPublicKey: Data,
-                                   blockchain: Blockchain,
+                                   blockchainInfo: BlockchainInfo,
                                    isHDWalletAllowed: Bool,
                                    derivedKeys: [DerivationPath: ExtendedPublicKey]) -> WalletManager? {
-        if isHDWalletAllowed, blockchain.curve == .secp256k1 || blockchain.curve == .ed25519  {
-            guard let derivedKey = derivedKeys[blockchain.derivationPath!] else { return nil }
+        let blockchain = blockchainInfo.blockchain
+        if isHDWalletAllowed, let derivationPath = blockchainInfo.derivationPath,
+           blockchain.curve == .secp256k1 || blockchain.curve == .ed25519  {
+            guard let derivedKey = derivedKeys[derivationPath] else { return nil }
             
             return try? factory.makeWalletManager(cardId: cardId,
                                                   blockchain: blockchain,
                                                   seedKey: walletPublicKey,
-                                                  derivedKey: derivedKey)
+                                                  derivedKey: derivedKey,
+                                                  derivationPath: derivationPath)
         } else {
             return try? factory.makeWalletManager(cardId: cardId,
                                                   blockchain: blockchain,
@@ -130,16 +154,22 @@ class WalletManagerAssembly {
     }
     
     /// Try to load native walletmanager from card
-    private func makeNativeWalletManager(from cardInfo: CardInfo) -> WalletManager? {
+    private func makeNativeWalletManager(from cardInfo: CardInfo) -> WalletManagerInfo? {
         if let defaultBlockchain = cardInfo.defaultBlockchain,
-           let cardWalletManager = makeWalletManagers(from: cardInfo, blockchains: [defaultBlockchain]).first {
+           let info = makeWalletManagers(from: cardInfo, blockchainInfos: [.init(defaultBlockchain)]).first {
             if let defaultToken = cardInfo.defaultToken {
-                cardWalletManager.addToken(defaultToken)
+                info.manager.addToken(defaultToken)
             }
             
-            return cardWalletManager
+            return info
         }
         
         return nil
     }
+}
+
+
+struct WalletManagerInfo {
+    let manager: WalletManager
+    let isHidden: Bool
 }

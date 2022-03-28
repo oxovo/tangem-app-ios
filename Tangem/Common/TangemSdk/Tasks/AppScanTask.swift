@@ -74,11 +74,11 @@ final class AppScanTask: CardSessionRunnable {
     private var derivedKeys: [Data: [DerivationPath:ExtendedPublicKey]] = [:]
     private var linkingCommand: StartPrimaryCardLinkingTask? = nil
 #if !CLIP
-    private var mandatoryBlockchain: Blockchain? //for wc
+    private var mandatoryBlockchain: BlockchainInfo? //for wc
     private let tokenItemsRepository: TokenItemsRepository?
     
     init(tokenItemsRepository: TokenItemsRepository?, userPrefsService: UserPrefsService?,
-         targetBatch: String? = nil, mandatoryBlockchain: Blockchain? = nil) {
+         targetBatch: String? = nil, mandatoryBlockchain: BlockchainInfo? = nil) {
         self.tokenItemsRepository = tokenItemsRepository
         self.targetBatch = targetBatch
         self.userPrefsService = userPrefsService
@@ -265,13 +265,16 @@ final class AppScanTask: CardSessionRunnable {
             tokenItemsRepository.append(tokenItems, for: card.cardId)
         }
         
-        var savedBlockchains = tokenItemsRepository.getItems(for: session.environment.card!.cardId).map { $0.blockchain }
-        mandatoryBlockchain.map { savedBlockchains.append($0) }
+        var infos: [BlockchainInfo] = tokenItemsRepository.getItems(for: session.environment.card!.cardId).map { $0.blockchainInfo }
+        mandatoryBlockchain.map { infos.appendIfNotContain($0) }
         
-        let uniqueBlockchains = Set(savedBlockchains)
-        let derivations: [Data: [DerivationPath]] = uniqueBlockchains.reduce(into: [:]) { partialResult, blockchain in
-            if let wallet = session.environment.card?.wallets.first(where: { $0.curve == blockchain.curve }),
-               let path = blockchain.derivationPath {
+        if infos.contains(where: { $0.blockchain.isEvmBlockchain }) {
+            infos.appendIfNotContain(BlockchainInfo(.ethereum(testnet: session.environment.card!.isTestnetBatch)))
+        }
+        
+        let derivations: [Data: [DerivationPath]] = infos.reduce(into: [:]) { partialResult, blockchainInfo in
+            if let wallet = session.environment.card?.wallets.first(where: { $0.curve == blockchainInfo.blockchain.curve }),
+               let path = blockchainInfo.derivationPath {
                 partialResult[wallet.publicKey, default: []].append(path)
             }
         }

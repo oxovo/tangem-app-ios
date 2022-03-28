@@ -8,11 +8,10 @@
 
 import Foundation
 import BlockchainSdk
+import TangemSdk
 
 extension Blockchain: Identifiable {
     public var id: Int { return hashValue }
-    
-    private static var testnetId = "/test"
     
     var rawStringId: String {
         var name = "\(self)".lowercased()
@@ -28,8 +27,21 @@ extension Blockchain: Identifiable {
         let name = rawStringId
         return isTestnet ? "\(name)\(Blockchain.testnetId)" : name
     }
-    //bitcoinCash, bsc, avalanche
-    //Init blockchain from id with default params
+    
+    var isEvmBlockchain: Bool {
+        switch self {
+        case .rsk, .bsc, .polygon, .avalanche, .fantom:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    var iconName: String { rawStringId }
+    var iconNameFilled: String { "\(iconName).fill" }
+    
+    private static var testnetId = "/test"
+    
     init?(from stringId: String) {
         let isTestnet = stringId.contains(Blockchain.testnetId)
         let rawId = stringId.remove(Blockchain.testnetId)
@@ -57,7 +69,7 @@ extension Blockchain: Identifiable {
         }
     }
     
-    var iconName: String { rawStringId }
-    
-    var iconNameFilled: String { "\(iconName).fill" }
+    static func getDefaultEvmDerivation(isTestnet: Bool) -> DerivationPath {
+        return Blockchain.ethereum(testnet: isTestnet).derivationPath!
+    }
 }

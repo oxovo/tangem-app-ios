@@ -17,6 +17,15 @@ enum TokenItem: Hashable, Identifiable {
     
     var isBlockchain: Bool { token == nil }
     
+    var blockchainInfo: BlockchainInfo {
+        switch self {
+        case .blockchain(let blockchainInfo):
+            return blockchainInfo
+        default:
+            return nil
+        }
+    }
+    
     var id: Int {
         switch self {
         case .token(let token):

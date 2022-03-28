@@ -31,8 +31,8 @@ struct CardInfo {
     
 #if !CLIP
     var isTestnet: Bool {
-        if card.batchId == "99FF" { //TODO: TBD ??
-            return card.cardId.starts(with: card.batchId.reversed())
+        if isTestnetBatch {
+            return true
         }
         
         return defaultBlockchain?.isTestnet ?? false

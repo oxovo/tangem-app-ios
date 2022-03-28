@@ -623,8 +623,9 @@ class CardViewModel: Identifiable, ObservableObject {
   
     @discardableResult
     func addBlockchain(_ blockchain: Blockchain) -> WalletModel? {
-        tokenItemsRepository.append(.blockchain(BlockchainInfo(blockchain: blockchain)), for: cardInfo.card.cardId)
-        let newWalletModels = assembly.makeWalletModels(from: cardInfo, blockchains: [blockchain])
+        let info = BlockchainInfo(blockchain)
+        tokenItemsRepository.append(.blockchain(info), for: cardInfo.card.cardId)
+        let newWalletModels = assembly.makeWalletModels(from: cardInfo, blockchains: [info])
         newWalletModels.forEach {$0.update()}
         updateLoadedState(with: newWalletModels)
         return newWalletModels.first

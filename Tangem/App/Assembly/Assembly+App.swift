@@ -396,41 +396,42 @@ extension Assembly {
         let walletManagerFactory = WalletManagerFactory(config: services.keysManager.blockchainConfig)
         let assembly = WalletManagerAssembly(factory: walletManagerFactory,
                                              tokenItemsRepository: services.tokenItemsRepository)
-        let walletManagers = assembly.makeAllWalletManagers(for: cardInfo)
-        return makeWalletModels(walletManagers: walletManagers, cardInfo: cardInfo)
+        let walletManagerInfos = assembly.makeAllWalletManagers(for: cardInfo)
+        return makeWalletModels(infos: walletManagerInfos, cardInfo: cardInfo)
     }
     
-    func makeWalletModels(from cardInfo: CardInfo, blockchains: [Blockchain]) -> [WalletModel] {
+    func makeWalletModels(from cardInfo: CardInfo, blockchainInfo: [BlockchainInfo]) -> [WalletModel] {
         let walletManagerFactory = WalletManagerFactory(config: services.keysManager.blockchainConfig)
         let assembly = WalletManagerAssembly(factory: walletManagerFactory,
                                              tokenItemsRepository: services.tokenItemsRepository)
-        let walletManagers = assembly.makeWalletManagers(from: cardInfo, blockchains: blockchains)
-        return makeWalletModels(walletManagers: walletManagers, cardInfo: cardInfo)
+        let walletManagerInfos = assembly.makeWalletManagers(from: cardInfo, blockchainInfos: blockchainInfo)
+        return makeWalletModels(infos: walletManagerInfos, cardInfo: cardInfo)
     }
     
-    func makeWalletModels(from cardDto: SavedCard, blockchains: [Blockchain]) -> [WalletModel] {
+    func makeWalletModels(from cardDto: SavedCard, blockchainInfos: [BlockchainInfo]) -> [WalletModel] {
         let walletManagerFactory = WalletManagerFactory(config: services.keysManager.blockchainConfig)
         let assembly = WalletManagerAssembly(factory: walletManagerFactory,
                                              tokenItemsRepository: services.tokenItemsRepository)
-        let walletManagers = assembly.makeWalletManagers(from: cardDto, blockchains: blockchains)
-        return makeWalletModels(walletManagers: walletManagers, cardInfo: nil)
+        let walletManagerInfos = assembly.makeWalletManagers(from: cardDto, blockchainInfos: blockchainInfos)
+        return makeWalletModels(infos: walletManagerInfos, cardInfo: nil)
     }
     
     //Make walletModel from walletManager
-    private func makeWalletModels(walletManagers: [WalletManager], cardInfo: CardInfo?) -> [WalletModel] {
+    private func makeWalletModels(infos: [WalletManagerInfo], cardInfo: CardInfo?) -> [WalletModel] {
         let items = SupportedTokenItems()
-        return walletManagers.map { manager -> WalletModel in
+        return infos.map { info -> WalletModel in
             var demoBalance: Decimal? = nil
             if let card = cardInfo?.card, card.isDemoCard,
-               let balance = items.predefinedDemoBalances[manager.wallet.blockchain] {
+               let balance = items.predefinedDemoBalances[info.manager.wallet.blockchain] {
                 demoBalance = balance
             }
             
-            let model = WalletModel(walletManager: manager,
+            let model = WalletModel(walletManager: info.manager,
                                     signer: services.signer,
                                     defaultToken: cardInfo?.defaultToken,
                                     defaultBlockchain: cardInfo?.defaultBlockchain,
                                     demoBalance: demoBalance)
+            model.isHidden = info.isHidden
             model.tokenItemsRepository = services.tokenItemsRepository
             model.ratesService = services.ratesService
             return model
