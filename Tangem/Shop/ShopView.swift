@@ -60,7 +60,7 @@ struct ShopView: View {
         .onAppear(perform: viewModel.didAppear)
         .navigationBarHidden(true)
         .navigationBarTitle("") // HACK: Don't remove it, otherwise navigation title will NOT hide on iOS 13
-        .keyboardAdaptive(animated: .constant(false))
+        .keyboardAdaptive(animated: false)
     }
     
     private var cardStack: some View {

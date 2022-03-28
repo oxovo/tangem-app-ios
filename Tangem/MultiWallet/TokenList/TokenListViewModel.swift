@@ -216,7 +216,7 @@ class TokenListViewModel: ViewModel, ObservableObject {
             return .init(with: currency, items: currencyItems)
         }
         
-        self.filteredData = data
+        self.filteredData = Array(data.prefix(50))
     }
     
     private func isSelected(_ tokenItem: TokenItem) -> Bool {

@@ -23,14 +23,13 @@ struct CurrencyView: View {
                 
                 VStack(alignment: .leading, spacing: 8) {
                     
-                    HStack(spacing: 4) {
+                    HStack(alignment: .top, spacing: 4) {
                         Text(model.name)
                             .foregroundColor(.tangemGrayDark6)
                         Text(symbolFormatted)
                             .foregroundColor(Color(hex: "#A9A9AD")!)
                     }
-                    .lineLimit(1)
-                    .fixedSize()
+                    .lineLimit(2)
                     .font(.system(size: 17, weight: .medium, design: .default))
                     
                     if isExpanded {

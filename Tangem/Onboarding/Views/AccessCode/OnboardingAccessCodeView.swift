@@ -177,7 +177,7 @@ struct OnboardingAccessCodeView: View {
             .padding(.bottom, 16)
         }
         .padding(.horizontal, 40)
-        .keyboardAdaptive(animated: .constant(false))
+        .keyboardAdaptive(animated: false)
         .onDisappear {
             DispatchQueue.main.async {
                 self.error = .none

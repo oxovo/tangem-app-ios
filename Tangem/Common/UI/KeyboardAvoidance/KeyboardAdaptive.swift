@@ -14,7 +14,7 @@ import Combine
 struct KeyboardAdaptive: ViewModifier {
     @State private var bottomPadding: CGFloat = 0
     @State private var animationDuration: Double = 0
-    var animated: Binding<Bool>
+    var animated: Bool
     
     func body(content: Content) -> some View {
             content
@@ -26,13 +26,13 @@ struct KeyboardAdaptive: ViewModifier {
                     self.animationDuration = animationDuration
                     self.bottomPadding = keyboardHeight - bottomSafeAreaInset// max(0, focusedTextInputBottom - keyboardTop - geometry.safeAreaInsets.bottom)
             }
-                .animation(animated.wrappedValue ? Animation.easeOut(duration: animationDuration) : nil)
+                .animation(animated ? Animation.easeOut(duration: animationDuration) : nil)
     }
 }
 
 extension View {
     @ViewBuilder
-    func keyboardAdaptive(animated: Binding<Bool>) -> some View {
+    func keyboardAdaptive(animated: Bool = false) -> some View {
         if #available(iOS 14.0, *) {
             self
         } else {

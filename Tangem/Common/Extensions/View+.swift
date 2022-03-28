@@ -17,6 +17,14 @@ extension View {
             self
         }
     }
+    
+    @ViewBuilder func ignoresBottomEdge() -> some View {
+        if #available(iOS 14.0, *) {
+            self.ignoresSafeArea(.container)
+        } else {
+            self.edgesIgnoringSafeArea(.bottom)
+        }
+    }
 }
 
 extension View {
