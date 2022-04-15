@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import BlockchainSdk
 
 class FailedCardScanTracker: EmailDataCollector {
     
@@ -17,11 +18,11 @@ class FailedCardScanTracker: EmailDataCollector {
     }
     
     var attachment: Data? {
-        logger.scanLogFileData
+        MNPLogger.shared.scanLogFileData
     }
     
     var shouldDisplayAlert: Bool {
-        numberOfFailedAttempts >= 2
+        numberOfFailedAttempts >= 1
     }
     
     private var numberOfFailedAttempts: Int = 0
