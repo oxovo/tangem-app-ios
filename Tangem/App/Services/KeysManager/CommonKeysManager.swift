@@ -50,7 +50,8 @@ extension CommonKeysManager: KeysManager {
     var blockchainConfig: BlockchainSdkConfig {
         BlockchainSdkConfig(blockchairApiKey: keys.blockchairApiKey,
                             blockcypherTokens: keys.blockcypherTokens,
-                            infuraProjectId: keys.infuraProjectId)
+                            infuraProjectId: keys.infuraProjectId,
+                            infuraArbitrumProjectId: keys.infuraArbitrumProjectId)
     }
     
     var shopifyShop: ShopifyShop {
@@ -66,12 +67,13 @@ extension CommonKeysManager {
         let blockchairApiKey: String
         let blockcypherTokens: [String]
         let infuraProjectId: String
+        let infuraArbitrumProjectId: String
         let appsFlyerDevKey: String
         let shopifyShop: ShopifyShop
         
         fileprivate static var empty: Keys {
             .init(moonPayApiKey: "", moonPayApiSecretKey: "", onramperApiKey: "", blockchairApiKey: "",
-                  blockcypherTokens: [], infuraProjectId: "", appsFlyerDevKey: "",
+                  blockcypherTokens: [], infuraProjectId: "", infuraArbitrumProjectId: "", appsFlyerDevKey: "",
                   shopifyShop: .init(domain: "", storefrontApiKey: "", merchantID: ""))
         }
     }
